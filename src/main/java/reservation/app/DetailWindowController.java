@@ -67,7 +67,6 @@ public class DetailWindowController {
             alert.setContentText(null);
             alert.showAndWait();
             delete_button.getScene().getWindow().hide();
-            System.out.println(controller.getHashMap());
         });
     }
     void initDataOfButtons(ButtonData button) {

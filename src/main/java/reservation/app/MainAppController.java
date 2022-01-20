@@ -188,7 +188,6 @@ public class MainAppController {
             getHashMap().put(day_field + " " + begin_time, button);
 
             btn.setOnAction(eventForButton -> detailWindow(button));
-            System.out.println(listOfButtons);
             return true;
         }
         return false;
