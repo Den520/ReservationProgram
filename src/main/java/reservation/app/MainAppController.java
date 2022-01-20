@@ -1,8 +1,11 @@
 package reservation.app;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Objects;
+
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -63,6 +66,134 @@ public class MainAppController {
         }
     }
 
+    public boolean createEvent(ButtonData current_button, String event_name, String participants_list, String day_field, String begin_time, String end_time) {
+        int indicator_of_error = 0;
+
+        if (Objects.equals(event_name, "")) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Ошибка");
+            alert.setHeaderText("Упс, кажется вы не ввели название мероприятия");
+            alert.setContentText("Введите, например, \"Главное событие дня\".");
+            alert.showAndWait();
+            indicator_of_error = 1;
+        }
+
+        if (Objects.equals(participants_list, "")) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Ошибка");
+            alert.setHeaderText("Упс, кажется вы никого не позвали на ваше мероприятие...или вы собираетесь разговаривать с самим собой?");
+            alert.setContentText("Раздайте приглашения и введите участников.");
+            alert.showAndWait();
+            indicator_of_error = 1;
+        }
+
+        if (!day_field.matches("[0-9]+")) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Ошибка");
+            alert.setHeaderText("Что-то не так с датой мероприятия...");
+            alert.setContentText("Пожалуйста, введите любое число месяца, которое входит в наш календарь (от 1 до 28).");
+            alert.showAndWait();
+            indicator_of_error = 1;
+        }
+        else {
+            int day = Integer.parseInt(day_field);
+            if (!(day >= 1 & day <= 28)) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Ошибка");
+                alert.setHeaderText("Что-то не так с датой мероприятия...");
+                alert.setContentText("Пожалуйста, введите любое число месяца, которое входит в наш календарь (от 1 до 28).");
+                alert.showAndWait();
+                indicator_of_error = 1;
+            }
+        }
+
+        if (!(begin_time.matches(patternFormatTime) & end_time.matches(patternFormatTime))) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Ошибка");
+            alert.setHeaderText("Упс, кажется вы ошиблись с форматом времени.");
+            alert.setContentText("Время должно быть введено в формате (чч:мм). Например, начало в 05:30, а конец в 10:00.");
+            alert.showAndWait();
+            indicator_of_error = 1;
+        }
+
+        String[] b = begin_time.split(":");
+        String[] e = end_time.split(":");
+
+        int begin = Integer.parseInt(b[0]) * 60 + Integer.parseInt(b[1]);
+        int end = Integer.parseInt(e[0]) * 60 + Integer.parseInt(e[1]);
+
+        if (end - begin < 30 || end - begin > 1440) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Ошибка");
+            alert.setHeaderText("Вы точно прочитали, что написано внизу?");
+            alert.setContentText("Минимальный промежуток бронирования - 30 минут, максимальный - 24 часа.");
+            alert.showAndWait();
+            indicator_of_error = 1;
+        }
+
+        int select_week = 0;
+        int X_layout = 0;
+        double Y_layout = 0;
+        double btnHeight = 0;
+
+        if (indicator_of_error == 0) {
+            int day_of_week = Integer.parseInt(day_field);
+            select_week = 1;
+            while (day_of_week > 7) {
+                day_of_week -= 7;
+                select_week++;
+            }
+            X_layout = 107 + (day_of_week - 1) * 125;
+            Y_layout = 50 + begin * 0.5;
+            btnHeight = (end - begin) * 0.5;
+
+            int X_point = X_layout + 50;
+            double Y_point = Y_layout;
+
+            try {
+                saveAsPng(getPane(select_week));
+                File file = new File("my_snapshot.png");
+                BufferedImage image = ImageIO.read(file);
+                int placeIsEmpty = 1;
+                while (Y_point < Y_layout + btnHeight) {
+                    placeIsEmpty *= image.getRGB(X_point, Math.toIntExact(Math.round(Y_point)));
+                    placeIsEmpty *= image.getRGB(X_point, Math.toIntExact(Math.round(Y_point)) + 1);
+                    Y_point += 1;
+                }
+                file.delete();
+                if (Math.abs(placeIsEmpty) != 1) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Ошибка");
+                    alert.setHeaderText("Время уже занято");
+                    alert.setContentText("Пожалуйста, измените время мероприятия");
+                    alert.showAndWait();
+                    indicator_of_error = 1;
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        if (indicator_of_error == 0) {
+            if (current_button != null) {
+                getPane(current_button.getWeek()).getChildren().remove(current_button.getButton_obj());
+                getHashMap().remove(Integer.parseInt(current_button.getDay()) + " " + current_button.getBegin());
+            }
+            Button btn = new Button(event_name);
+            ButtonData button = new ButtonData(btn, event_name, participants_list, day_field, select_week, begin_time, begin, end_time, end);
+            getPane(select_week).getChildren().add(btn);
+            btn.setLayoutX(X_layout);
+            btn.setLayoutY(Y_layout);
+            btn.setPrefSize(124, btnHeight);
+            getHashMap().put(day_field + " " + begin_time, button);
+
+            btn.setOnAction(eventForButton -> detailWindow(button));
+            System.out.println(listOfButtons);
+            return true;
+        }
+        return false;
+    }
+
     public HashMap getHashMap() {return listOfButtons;}
 
     public AnchorPane getPane(int week) {
@@ -94,8 +225,8 @@ public class MainAppController {
     }
 
     int current_pane = 1;
-    String paternFormatTime = "[0-9]{2}:[0-9]{2}";
-    private final HashMap<Integer, ButtonData> listOfButtons = new HashMap<>();
+    String patternFormatTime = "[0-9]{2}:[0-9]{2}";
+    private final HashMap<String, ButtonData> listOfButtons = new HashMap<>();
 
     @FXML
     private Button createEventButton;
@@ -132,11 +263,13 @@ public class MainAppController {
 
     @FXML
     void initialize() {
+        createEvent(null,"Тестовое событие 1", "Мусаев Тариэль, Шишкин Вадим, Варкентин Мария", "2", "10:00", "12:00");
+        createEvent(null,"Тестовое событие 2", "Бадыгин Роман, Мусаев Тариэль, Насыров Сергей, Машков Никита", "10", "14:20", "15:10");
 
         createEventButton.setOnAction(event -> reserveWindow());
 
         filterApplyButton.setOnAction(event -> {
-            if (!(beginFilter.getText().matches(paternFormatTime) & endFilter.getText().matches(paternFormatTime))) {
+            if (!(beginFilter.getText().matches(patternFormatTime) & endFilter.getText().matches(patternFormatTime))) {
                 Alert alert = new Alert(Alert.AlertType.WARNING);
                 alert.setTitle("Ошибка");
                 alert.setHeaderText("Упс, кажется вы ошиблись с форматом времени.");
@@ -149,15 +282,13 @@ public class MainAppController {
                 int begin = Integer.parseInt(b[0]) * 60 + Integer.parseInt(b[1]);
                 int end = Integer.parseInt(e[0]) * 60 + Integer.parseInt(e[1]);
 
-                ButtonData current_button;
-                int i = 0;
-                while (i < listOfButtons.size()) {
-                    i++;
-                    current_button = listOfButtons.get(i);
+                listOfButtons.forEach((key, value) -> {
+                    ButtonData current_button = listOfButtons.get(key);
                     if (current_button.getBegin() < begin || current_button.getBegin() > end || current_button.getEnd() < begin || current_button.getEnd() > end) {
                         current_button.getButton_obj().setVisible(false);
                     }
-                }
+                });
+
                 filterResetButton.setVisible(true);
                 filterApplyButton.setDisable(true);
                 createEventButton.setDisable(true);
@@ -168,11 +299,9 @@ public class MainAppController {
             filterResetButton.setVisible(false);
             filterApplyButton.setDisable(false);
             createEventButton.setDisable(false);
-            int i = 0;
-            while (i < listOfButtons.size()) {
-                i++;
-                listOfButtons.get(i).getButton_obj().setVisible(true);
-            }
+
+            listOfButtons.forEach((key, value) -> listOfButtons.get(key).getButton_obj().setVisible(true));
+
             beginFilter.clear();
             endFilter.clear();
         });
