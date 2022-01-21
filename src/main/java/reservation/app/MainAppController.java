@@ -158,7 +158,7 @@ public class MainAppController {
                 while (Y_point < Y_layout + btnHeight) {
                     placeIsEmpty *= image.getRGB(X_point, Math.toIntExact(Math.round(Y_point)));
                     placeIsEmpty *= image.getRGB(X_point, Math.toIntExact(Math.round(Y_point)) + 1);
-                    Y_point += 1;
+                    Y_point += 0.5;
                 }
                 file.delete();
                 if (Math.abs(placeIsEmpty) != 1) {
@@ -177,7 +177,7 @@ public class MainAppController {
         if (indicator_of_error == 0) {
             if (current_button != null) {
                 getPane(current_button.getWeek()).getChildren().remove(current_button.getButton_obj());
-                getHashMap().remove(Integer.parseInt(current_button.getDay()) + " " + current_button.getBegin());
+                getHashMap().remove(current_button.getDay() + " " + current_button.getBegin_time());
             }
             Button btn = new Button(event_name);
             ButtonData button = new ButtonData(btn, event_name, participants_list, day_field, select_week, begin_time, begin, end_time, end);
